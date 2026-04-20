@@ -2,6 +2,9 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
+from app.services.document_parser import extract_text
+from app.utils.file_utils import generate_unique_filename, sanitize_filename
+
 app = FastAPI(title="Chat with Your Docs API")
 
 ALLOWED_EXTENSIONS = {".txt", ".pdf", ".doc", ".docx"}
@@ -31,17 +34,27 @@ async def upload_document(file: UploadFile = File(...)):
             detail=f"Unsupported file type: {file.filename}",
         )
 
-    file_path = UPLOAD_DIR / file.filename
+    safe_name = sanitize_filename(file.filename)
+    unique_name = generate_unique_filename(safe_name)
+    file_path = UPLOAD_DIR / unique_name
 
     content = await file.read()
+
     with open(file_path, "wb") as f:
         f.write(content)
+
+    try:
+        extracted_text = extract_text(file_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     return {
         "message": "File uploaded successfully",
         "file": {
-            "filename": file.filename,
+            "filename": unique_name,
             "content_type": file.content_type,
             "saved_to": str(file_path),
         },
+        "text_length": len(extracted_text),
+        "text_preview": extracted_text[:500],
     }
