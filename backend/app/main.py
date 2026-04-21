@@ -4,6 +4,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from app.services.document_parser import extract_text
 from app.utils.file_utils import generate_unique_filename, sanitize_filename
+from app.services.text_processor import clean_text, chunk_text
 
 app = FastAPI(title="Chat with Your Docs API")
 
@@ -47,6 +48,9 @@ async def upload_document(file: UploadFile = File(...)):
         extracted_text = extract_text(file_path)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+    cleaned_text = clean_text(extracted_text)
+    chunks = chunk_text(cleaned_text)
 
     return {
         "message": "File uploaded successfully",
@@ -55,6 +59,9 @@ async def upload_document(file: UploadFile = File(...)):
             "content_type": file.content_type,
             "saved_to": str(file_path),
         },
-        "text_length": len(extracted_text),
-        "text_preview": extracted_text[:500],
+        "text_length": len(cleaned_text),
+        "chunk_count": len(chunks),
+        "preview_chunks": chunks[:2],
     }
+
+    
