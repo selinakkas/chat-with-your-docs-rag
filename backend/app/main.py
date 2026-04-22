@@ -1,15 +1,21 @@
 from pathlib import Path
-
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
-
 from app.services.document_parser import extract_text
 from app.services.text_processor import clean_text, chunk_text
 from app.services.vector_store import VectorStoreService
 from app.utils.file_utils import generate_unique_filename, sanitize_filename
 from app.services.llm_service import LLMService
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Chat with Your Docs API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 ALLOWED_EXTENSIONS = {".txt", ".pdf", ".doc", ".docx"}
 
