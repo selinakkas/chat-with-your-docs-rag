@@ -9,6 +9,7 @@ load_dotenv(ENV_PATH)
 
 class Settings:
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
     CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "documents")
 
 

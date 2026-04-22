@@ -7,6 +7,7 @@ from app.services.document_parser import extract_text
 from app.services.text_processor import clean_text, chunk_text
 from app.services.vector_store import VectorStoreService
 from app.utils.file_utils import generate_unique_filename, sanitize_filename
+from app.services.llm_service import LLMService
 
 app = FastAPI(title="Chat with Your Docs API")
 
@@ -102,6 +103,32 @@ def query_documents(request: QueryRequest):
             "query": request.query,
             "match_count": len(matches),
             "matches": matches,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/ask")
+def ask_documents(request: QueryRequest):
+    try:
+        vector_store = VectorStoreService()
+        matches = vector_store.query(request.query)
+
+        llm_service = LLMService()
+        answer = llm_service.generate_answer(request.query, matches)
+
+        return {
+            "question": request.query,
+            "answer": answer,
+            "source_count": len(matches),
+            "sources": [
+                {
+                    "document_id": match["document_id"],
+                    "filename": match["filename"],
+                    "chunk_index": match["chunk_index"],
+                    "distance": match["distance"],
+                }
+                for match in matches
+            ],
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
