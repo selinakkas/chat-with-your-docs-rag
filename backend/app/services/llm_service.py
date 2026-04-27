@@ -10,7 +10,7 @@ class LLMService:
 
         self.client = Groq(api_key=settings.GROQ_API_KEY)
 
-    def generate_answer(self, question: str, matches: list[dict]) -> str:
+    def _build_prompt(self, question: str, matches: list[dict]) -> str:
         context_parts = []
 
         for i, match in enumerate(matches, start=1):
@@ -34,20 +34,49 @@ Question:
 Context:
 {context}
 """
+        return prompt
+
+    def generate_answer(self, question: str, matches: list[dict]) -> str:
+        prompt = self._build_prompt(question, matches)
 
         response = self.client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {
                     "role": "system",
-                    "content": "You answer questions using only retrieved document context."
+                    "content": "You answer questions using only retrieved document context.",
                 },
                 {
                     "role": "user",
-                    "content": prompt
+                    "content": prompt,
                 },
             ],
             temperature=0.2,
         )
 
         return response.choices[0].message.content
+
+    def generate_answer_stream(self, question: str, matches: list[dict]):
+        prompt = self._build_prompt(question, matches)
+
+        stream = self.client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You answer questions using only retrieved document context.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            temperature=0.2,
+            stream=True,
+        )
+
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content
+
+            if delta:
+                yield delta
